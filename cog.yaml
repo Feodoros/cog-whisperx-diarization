@@ -8,7 +8,6 @@ build:
 
   system_packages:
     - "ffmpeg"
-    - "ffprobe"
 
   # python version in the form '3.8' or '3.8.12'
   python_version: "3.11"

@@ -3,7 +3,6 @@
 import os
 import subprocess
 import random
-import math
 import json
 import whisperx
 import torch
@@ -21,7 +20,6 @@ class Predictor(BasePredictor):
         self.device = "cuda"
         self.model = whisperx.load_model(
             "large-v3", self.device, compute_type=compute_type)
-        self.allign_model_en, self.metadata_en = whisperx.load_align_model(language_code='en', device=self.device)
         self.allign_model_ru, self.metadata_ru = whisperx.load_align_model(language_code='ru', device=self.device)
 
     def predict(
@@ -29,10 +27,11 @@ class Predictor(BasePredictor):
         audio: Path = Input(description="Audio file", default="https://pyannote-speaker-diarization.s3.eu-west-2.amazonaws.com/lex-levin-4min.mp3"),
         batch_size: int = Input(description="Parallelization of input audio transcription", default=16),
         hugging_face_token: str = Input(description="Your Hugging Face access token. If empty skip diarization.", default=None),
-        language: str = Input(description="Spoken language. If empty auto detect.", default=None),
+        duration_sec: int = Input(description="Duration in sec to improve lang detection", default=0),
         debug: bool = Input(description="Print out memory usage information.", default=True)
     ) -> str:
         self.file_path = str(audio)
+        self.duration_sec = duration_sec
         """Run a single prediction on the model"""
         with torch.inference_mode():
             try:
@@ -45,9 +44,7 @@ class Predictor(BasePredictor):
 
                 # 2. Align whisper output
                 lang = result["language"]
-                if lang == 'en':
-                    result = whisperx.align(result['segments'], self.allign_model_en, self.metadata_en, audio, self.device, return_char_alignments=False)
-                elif lang == 'ru':
+                if lang == 'ru':
                     result = whisperx.align(result['segments'], self.allign_model_ru, self.metadata_ru, audio, self.device, return_char_alignments=False)
                 elif lang != 'nn':
                     try:
@@ -70,7 +67,7 @@ class Predictor(BasePredictor):
         return json.dumps([result['segments'], lang])
 
     def detect_lang_from_several_parts(self):
-        duration_sec = math.floor(self.get_audio_duration())
+        duration_sec = self.duration_sec
         if duration_sec <= 30:
             return None
 
@@ -120,11 +117,3 @@ class Predictor(BasePredictor):
     
     def get_file_name_and_ext(self):
         return os.path.splitext(self.file_path)
-    
-    def get_audio_duration(self):
-        result = subprocess.run(["ffprobe", "-loglevel", "error", "-show_entries",
-                                "format=duration", "-of",
-                                "default=noprint_wrappers=1:nokey=1", self.file_path],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        return float(result.stdout)
