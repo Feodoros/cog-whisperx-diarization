@@ -78,28 +78,32 @@ class Predictor(BasePredictor):
         all_30sec_intervals = self.calculate_time_intervals(duration_sec)
         intervals = random.sample(all_30sec_intervals, min(len(all_30sec_intervals), 4))
         for idx, interval in enumerate(intervals):
+            print(f"Detect lang for {interval}")
             cut_interval_path = self.cut_recording(idx, interval[0])
-            res = self.detect_chunk_lang()
+            cut_audio = whisperx.load_audio(cut_interval_path)
+            res = self.model.detect_language(cut_audio)
+            #res = self.detect_chunk_lang()
             interval_langs.append(res)
+            print(f"-- {res}")
             os.remove(cut_interval_path)
 
         print(f"Detected langs: {interval_langs}")
         return max(set(interval_langs), key=interval_langs.count)
 
-    def detect_chunk_lang(self):
-        self.read_audio()
-        lang = self.get_language()
-        return lang
+    # def detect_chunk_lang(self):
+    #     self.read_audio()
+    #     lang = self.get_language()
+    #     return lang
     
-    def read_audio(self):
-        audio = whisperx.load_audio(self.file_path)
-        audio = pad_or_trim(audio)
-        # make log-Mel spectrogram and move to the same device as the model
-        self.mel = log_mel_spectrogram(audio, 80, 0)
+    # def read_audio(self):
+    #     audio = whisperx.load_audio(self.file_path)
+    #     audio = pad_or_trim(audio)
+    #     # make log-Mel spectrogram and move to the same device as the model
+    #     self.mel = log_mel_spectrogram(audio, 80, 0)
 
-    def get_language(self):
-        _, probs = self.model.detect_language(self.mel)
-        return max(probs, key=probs.get)
+    # def get_language(self):
+    #     _, probs = self.model.detect_language(self.mel)
+    #     return max(probs, key=probs.get)
 
     def calculate_time_intervals(self, duration_sec):
         intervals = []
