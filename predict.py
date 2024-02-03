@@ -36,6 +36,7 @@ class Predictor(BasePredictor):
         with torch.inference_mode():
             try:
                 # 0: Detect lang
+                print("Start lang detection")
                 language = self.detect_lang_from_several_parts()
 
                 # 1. Transcribe with original whisper (batched)                
@@ -74,13 +75,14 @@ class Predictor(BasePredictor):
         interval_langs = []
         # Split into 30s intervals 
         all_30sec_intervals = self.calculate_time_intervals(duration_sec)
-        intervals = random.choices(all_30sec_intervals, k=4)
+        intervals = random.sample(all_30sec_intervals, min(len(all_30sec_intervals), 4))
         for idx, interval in enumerate(intervals):
             cut_interval_path = self.cut_recording(idx, interval[0])
-            res = self.detect_chunk_lang(cut_interval_path)
+            res = self.detect_chunk_lang()
             interval_langs.append(res)
             os.remove(cut_interval_path)
 
+        print(f"Detected langs: {interval_langs}")
         return max(set(interval_langs), key=interval_langs.count)
 
     def detect_chunk_lang(self):
