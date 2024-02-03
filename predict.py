@@ -5,7 +5,6 @@ import subprocess
 import random
 import json
 import whisperx
-from whisperx.audio import pad_or_trim, log_mel_spectrogram
 import torch
 from cog import BasePredictor, Input, Path
 os.environ['HF_HOME'] = '/src/hf_models'
@@ -74,15 +73,14 @@ class Predictor(BasePredictor):
             return None
 
         interval_langs = []
-        # Split into 30s intervals 
-        all_30sec_intervals = self.calculate_time_intervals(duration_sec)
-        intervals = random.sample(all_30sec_intervals, min(len(all_30sec_intervals), 4))
+        # Split into 31s intervals 
+        all_31sec_intervals = self.calculate_time_intervals(duration_sec)
+        intervals = random.sample(all_31sec_intervals, min(len(all_31sec_intervals), 4))
         for idx, interval in enumerate(intervals):
             print(f"Detect lang for {interval}")
             cut_interval_path = self.cut_recording(idx, interval[0])
             cut_audio = whisperx.load_audio(cut_interval_path)
             res = self.model.detect_language(cut_audio)
-            #res = self.detect_chunk_lang()
             interval_langs.append(res)
             print(f"-- {res}")
             os.remove(cut_interval_path)
@@ -90,36 +88,21 @@ class Predictor(BasePredictor):
         print(f"Detected langs: {interval_langs}")
         return max(set(interval_langs), key=interval_langs.count)
 
-    # def detect_chunk_lang(self):
-    #     self.read_audio()
-    #     lang = self.get_language()
-    #     return lang
-    
-    # def read_audio(self):
-    #     audio = whisperx.load_audio(self.file_path)
-    #     audio = pad_or_trim(audio)
-    #     # make log-Mel spectrogram and move to the same device as the model
-    #     self.mel = log_mel_spectrogram(audio, 80, 0)
-
-    # def get_language(self):
-    #     _, probs = self.model.detect_language(self.mel)
-    #     return max(probs, key=probs.get)
-
     def calculate_time_intervals(self, duration_sec):
         intervals = []
         if duration_sec < 30:
             return intervals
         start = 0
-        while start + 30 <= duration_sec:
-            intervals.append((start, start + 30))
-            start += 30
+        while start + 31 <= duration_sec:
+            intervals.append((start, start + 31))
+            start += 31
         return intervals
     
     def cut_recording(self, chunk_postfix, from_sec):
         file_pathname, ext = self.get_file_name_and_ext()
         cut_file_path = f"{file_pathname}_{chunk_postfix}{ext}"
         subprocess.call(['ffmpeg', '-loglevel', 'error', '-i', self.file_path,
-                        '-ss', f'{from_sec}', '-t', '30', '-map', '0', '-c', 'copy', cut_file_path])
+                        '-ss', f'{from_sec}', '-t', '31', '-map', '0', '-c', 'copy', cut_file_path])
         return cut_file_path
     
     def get_file_name_and_ext(self):
