@@ -95,7 +95,7 @@ class Predictor(BasePredictor):
         audio = whisperx.load_audio(self.file_path)
         audio = pad_or_trim(audio)
         # make log-Mel spectrogram and move to the same device as the model
-        self.mel = log_mel_spectrogram(audio, 80, 0, self.device)
+        self.mel = log_mel_spectrogram(audio, 80, 0)
 
     def get_language(self):
         _, probs = self.model.detect_language(self.mel)
