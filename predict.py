@@ -5,6 +5,7 @@ import subprocess
 import random
 import json
 import whisperx
+from whisperx.audio import pad_or_trim, log_mel_spectrogram
 import torch
 from cog import BasePredictor, Input, Path
 os.environ['HF_HOME'] = '/src/hf_models'
@@ -92,9 +93,9 @@ class Predictor(BasePredictor):
     
     def read_audio(self):
         audio = whisperx.load_audio(self.file_path)
-        audio = whisperx.pad_or_trim(audio)
+        audio = pad_or_trim(audio)
         # make log-Mel spectrogram and move to the same device as the model
-        self.mel = whisperx.log_mel_spectrogram(audio).to(self.device)
+        self.mel = log_mel_spectrogram(audio).to(self.device)
 
     def get_language(self):
         _, probs = self.model.detect_language(self.mel)
