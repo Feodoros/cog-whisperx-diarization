@@ -11,7 +11,7 @@ os.environ['HF_HOME'] = '/src/hf_models'
 os.environ['TORCH_HOME'] = '/src/torch_models'
 
 
-compute_type = "float16"
+compute_type = "float32"
 
 
 class Predictor(BasePredictor):
