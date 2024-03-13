@@ -5,6 +5,7 @@ import subprocess
 import random
 import json
 import whisperx
+import faster_whisper
 import torch
 from cog import BasePredictor, Input, Path
 os.environ['HF_HOME'] = '/src/hf_models'
@@ -30,6 +31,7 @@ class Predictor(BasePredictor):
         duration_sec: int = Input(description="Duration in sec to improve lang detection", default=0),
         debug: bool = Input(description="Print out memory usage information.", default=True),
         lang: str = Input(description="Predefined lang", default=None),
+        initial_prompt: str = Input(description="Predefined initial prompt", default=None)
     ) -> str:
         self.file_path = str(audio)
         self.duration_sec = duration_sec
@@ -42,6 +44,12 @@ class Predictor(BasePredictor):
                     # 0: Detect lang
                     print("Start lang detection")
                     language = self.detect_lang_from_several_parts()
+
+                if initial_prompt:
+                    new_asr_options = self.model.options._asdict()
+                    new_asr_options["initial_prompt"] = initial_prompt
+                    new_options = faster_whisper.transcribe.TranscriptionOptions(**new_asr_options)
+                    self.model.options = new_options
 
                 # 1. Transcribe with original whisper (batched)
                 audio = whisperx.load_audio(self.file_path)
