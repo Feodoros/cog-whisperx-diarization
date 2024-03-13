@@ -25,21 +25,25 @@ class Predictor(BasePredictor):
     def predict(
         self,
         audio: Path = Input(description="Audio file", default="https://pyannote-speaker-diarization.s3.eu-west-2.amazonaws.com/lex-levin-4min.mp3"),
-        batch_size: int = Input(description="Parallelization of input audio transcription", default=16),
+        batch_size: int = Input(description="Parallelization of input audio transcription", default=32),
         hugging_face_token: str = Input(description="Your Hugging Face access token. If empty skip diarization.", default=None),
         duration_sec: int = Input(description="Duration in sec to improve lang detection", default=0),
-        debug: bool = Input(description="Print out memory usage information.", default=True)
+        debug: bool = Input(description="Print out memory usage information.", default=True),
+        lang: str = Input(description="Predefined lang", default=None),
     ) -> str:
         self.file_path = str(audio)
         self.duration_sec = duration_sec
         """Run a single prediction on the model"""
         with torch.inference_mode():
             try:
-                # 0: Detect lang
-                print("Start lang detection")
-                language = self.detect_lang_from_several_parts()
+                if lang:
+                    language = lang
+                else:
+                    # 0: Detect lang
+                    print("Start lang detection")
+                    language = self.detect_lang_from_several_parts()
 
-                # 1. Transcribe with original whisper (batched)                
+                # 1. Transcribe with original whisper (batched)
                 audio = whisperx.load_audio(self.file_path)
                 result = self.model.transcribe(audio, batch_size=batch_size, language=language)
 
