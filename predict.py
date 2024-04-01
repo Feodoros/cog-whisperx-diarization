@@ -99,6 +99,9 @@ class Predictor(BasePredictor):
             os.remove(cut_interval_path)
 
         print(f"Detected langs: {interval_langs}")
+        if 'ru' in interval_langs:
+            return 'ru'
+
         return max(set(interval_langs), key=interval_langs.count)
 
     def calculate_time_intervals(self, duration_sec):
